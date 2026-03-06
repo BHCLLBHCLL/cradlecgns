@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>BOX_ANSA_CORRECTIONS_SUMMARY</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">BOX_ANSA_CORRECTIONS_SUMMARY</h1>
+</header>
+<h1 id="box_ansa.cgns-有效修正点总结">box_ansa.cgns 有效修正点总结</h1>
+<p>本文档系统梳理针对 <strong>box_ansa.cgns</strong>
+的修正项、对应脚本及推荐流程，便于复现与后续维护。</p>
+<hr />
+<h2 id="一开发情况概览">一、开发情况概览</h2>
+<h3 id="背景与目标">1. 背景与目标</h3>
+<ul>
+<li><strong>来源</strong>：box_ansa.cgns 与 box_ngons.cgns 均由 ANSA
+同一网格导出。</li>
+<li><strong>问题</strong>：ansa 导出在 BC 类型、整数位宽、PointList
+形状等方面与 ngons/Star-CCM+ 期望不一致，易导致导入失败或内存错误。</li>
+<li><strong>目标</strong>：在符合 CGNS 规范的前提下，将 box_ansa.cgns
+修正为可被 Star-CCM+、ANSA 正常导入的形态。</li>
+</ul>
+<h3 id="脚本与工具一览">2. 脚本与工具一览</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>脚本</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>view_cgns_shapes.py</code></td>
+<td>查看 CGNS 中各 dataset 的 shape/dtype</td>
+</tr>
+<tr>
+<td><code>compare_cgns.py</code></td>
+<td>对比两个 CGNS 文件结构、shape、dtype 及风险项</td>
+</tr>
+<tr>
+<td><code>fix_pointlist_shape.py</code></td>
+<td>ZoneBC 下 PointList 内 <code>" data"</code> 的 shape 从 (n,) 改为
+(n,1)</td>
+</tr>
+<tr>
+<td><code>fix_box_surfs_data.py</code></td>
+<td>将 ZoneBC/box_surfs/ data 从参考文件（如 box_ngons）复制，使 BC
+类型与长度一致</td>
+</tr>
+<tr>
+<td><code>fix_bc_type_null.py</code></td>
+<td>将 BCType 为 Null/NULL 的项改为 BCTypeNull（CGNS 合法类型）</td>
+</tr>
+<tr>
+<td><code>convert_elements_to_int64.py</code></td>
+<td>将 Element*、Zone data、PointList 等整数改为 int64</td>
+</tr>
+<tr>
+<td><code>fix_connectivity_signs.py</code></td>
+<td>ElementConnectivity 中负数取绝对值（可选，见备注）</td>
+</tr>
+<tr>
+<td><code>convert_elements_zone.py</code></td>
+<td>将带 ElementStartOffset 的 Elements_t 转为仅
+ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n
+跳过）</td>
+</tr>
+<tr>
+<td><code>set_cgns_version.py</code></td>
+<td>设置 CGNSLibraryVersion = 4.2（Star-CCM+、ANSA 可正常导入）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="文档与备注">3. 文档与备注</h3>
+<ul>
+<li><strong>CGNS_COMPARISON_REPORT.md</strong>：ansa vs ngons
+差异与内存风险分析。</li>
+<li><strong>备注</strong>：以下两点待后续验证——① 数据类型是否必须为 64
+位；② connectivity 是否允许为负数。</li>
+</ul>
+<hr />
+<h2 id="二box_ansa.cgns-有效修正点汇总">二、box_ansa.cgns
+有效修正点汇总</h2>
+<p>以下为对 <strong>box_ansa.cgns</strong>
+实际生效的修正点，按推荐执行顺序排列。</p>
+<h3 id="修正点-1边界类型不能为-null需为合法-bctype_t">修正点
+1：边界类型不能为 Null，需为合法 BCType_t</h3>
+<ul>
+<li><strong>现象</strong>：ZoneBC 下某 BC 的 <code>data</code> 为
+<code>"Null"</code>（4 字节），不符合 CGNS 对 BCType_t 的要求。</li>
+<li><strong>规范</strong>：边界类型不能为 NULL，应为已知类型（如
+BCTypeNull、BCWall 等）。</li>
+<li><strong>做法</strong>：
+<ul>
+<li><strong>做法 A</strong>：若希望与参考文件一致（如壁面），用
+<code>fix_box_surfs_data.py</code> 从 box_ngons 复制，得到如
+<code>"BCWall"</code>（6 字节）。</li>
+<li><strong>做法 B</strong>：若仅需满足规范、不指定具体类型，用
+<code>fix_bc_type_null.py</code> 将 Null/NULL 改为
+<code>"BCTypeNull"</code>。</li>
+</ul></li>
+<li><strong>脚本</strong>：<code>fix_box_surfs_data.py</code> 或
+<code>fix_bc_type_null.py</code>。</li>
+</ul>
+<h3 id="修正点-2zonebc-下-pointlist-的-data-形状-n-n1">修正点 2：ZoneBC
+下 PointList 的 <code>" data"</code> 形状 (n,) → (n,1)</h3>
+<ul>
+<li><strong>现象</strong>：PointList 组内 <code>" data"</code> 为 1 维
+(n,)，部分读取器按 (n,1) 解析，易产生越界或 stride 错误。</li>
+<li><strong>做法</strong>：将 shape 从 (n,) 改为 (n,1)。</li>
+<li><strong>脚本</strong>：<code>fix_pointlist_shape.py</code>。</li>
+</ul>
+<h3 id="修正点-3整数类型统一为-64-位与-ngons-一致">修正点
+3：整数类型统一为 64 位（与 ngons 一致）</h3>
+<ul>
+<li><strong>现象</strong>：ansa 中
+ElementConnectivity、ElementRange、ElementStartOffset、Base/box_vol/
+data、ZoneBC/box_surfs/PointList/ data 等为 int32，ngons 为 int64。</li>
+<li><strong>风险</strong>：大网格索引溢出、或按 int64 解析时 stride
+错误。</li>
+<li><strong>做法</strong>：上述路径的整数 dataset 转为 int64。</li>
+<li><strong>脚本</strong>：<code>convert_elements_to_int64.py</code>。</li>
+<li><strong>备注</strong>：是否“必须”64 位尚未最终确认，当前以与
+ngons/常见读取器一致为准。</li>
+</ul>
+<h3 id="修正点-4cgns-库版本设为-4.2">修正点 4：CGNS 库版本设为 4.2</h3>
+<ul>
+<li><strong>现象</strong>：部分旧文件版本号非 4.2，Star-CCM+、ANSA
+导入异常。</li>
+<li><strong>经验</strong>：改为 4.2 后，Star-CCM+ 与 ANSA
+均可正常导入。</li>
+<li><strong>做法</strong>：设置 CGNSLibraryVersion 节点为 4.2。</li>
+<li><strong>脚本</strong>：<code>set_cgns_version.py</code>。</li>
+</ul>
+<h3 id="修正点-5可选elementconnectivity-负值处理">修正点
+5（可选）：ElementConnectivity 负值处理</h3>
+<ul>
+<li><strong>现象</strong>：NFACE_n 中 face ID
+可为负（表示法向），部分求解器假定非负。</li>
+<li><strong>做法</strong>：若下游不接受负 ID，可用
+<code>fix_connectivity_signs.py</code> 将负数取绝对值。</li>
+<li><strong>脚本</strong>：<code>fix_connectivity_signs.py</code>。</li>
+<li><strong>备注</strong>：connectivity
+是否允许为负数需进一步验证；若允许，则不必跑此脚本。</li>
+</ul>
+<h3 id="修正点-6可选elements_t-含-elementstartoffset-的转换">修正点
+6（可选）：Elements_t 含 ElementStartOffset 的转换</h3>
+<ul>
+<li><strong>现象</strong>：部分导出含 ElementConnectivity + ElementRange
++ ElementStartOffset，下游仅支持前两者。</li>
+<li><strong>做法</strong>：固定类型删除 ElementStartOffset；MIXED
+拆成多段同质 Elements_t；NGON_n/NFACE_n 按规范保留
+ElementStartOffset，不转换。</li>
+<li><strong>脚本</strong>：<code>convert_elements_zone.py</code>。</li>
+<li><strong>说明</strong>：当前 box 示例为
+NGON_n/NFACE_n，脚本会跳过；若以后遇到 MIXED 或误带 offset
+的固定类型，可启用。</li>
+</ul>
+<h3 id="修正点-7可选文件体积与碎片">修正点
+7（可选）：文件体积与碎片</h3>
+<ul>
+<li><strong>现象</strong>：多次就地修改后，box_ansa.cgns 约
+42KB，box_ngons 约 18KB，数据量相同，差异来自 HDF5 内部碎片。</li>
+<li><strong>做法</strong>：使用 <code>h5repack</code>
+重写文件，得到紧凑的 box_ansa_repacked.cgns，体积接近 ngons。</li>
+<li><strong>命令</strong>：<code>h5repack box_ansa.cgns box_ansa_repacked.cgns</code>。</li>
+</ul>
+<hr />
+<h2
+id="三推荐修正流程box_ansa.cgns">三、推荐修正流程（box_ansa.cgns）</h2>
+<p>按顺序执行即可得到与 box_ngons 兼容、可被 Star-CCM+ 与 ANSA
+正常导入的文件：</p>
+<pre class="text"><code>1. fix_pointlist_shape.py    box_ansa.cgns    # PointList  data (n,) -&gt; (n,1)
+2. fix_box_surfs_data.py     [或 fix_bc_type_null.py]  # BC 类型合法且长度一致
+3. convert_elements_to_int64.py  box_ansa.cgns # 整数转 int64
+4. set_cgns_version.py       box_ansa.cgns    # CGNSLibraryVersion = 4.2
+5. （可选）fix_connectivity_signs.py  box_ansa.cgns  # 若需消除负的 face ID
+6. （可选）h5repack box_ansa.cgns box_ansa_repacked.cgns  # 压缩与去碎片</code></pre>
+<p>验证：</p>
+<pre class="text"><code>python compare_cgns.py   # 若已支持参数，可比较 box_ansa_repacked.cgns 与 box_ngons.cgns</code></pre>
+<hr />
+<h2 id="四与-box_ngons.cgns-的差异收敛情况">四、与 box_ngons.cgns
+的差异收敛情况</h2>
+<p>完成上述修正并（可选）repack 后：</p>
+<ul>
+<li><strong>结构</strong>：与 box_ngons 一致（共同路径、无仅一方存在的
+dataset）。</li>
+<li><strong>Shape/dtype</strong>：共同路径上无差异。</li>
+<li><strong>命名</strong>：若存在 NFacesElements / NFaceElements
+等拼写差异，需在 ANSA 导出或后续脚本中统一（当前示例中 repack
+后已一致）。</li>
+</ul>
+<hr />
+<p><em>文档基于当晚开发与 box_ansa / box_ngons 对比结果整理。</em></p>
+</body>
+</html>
