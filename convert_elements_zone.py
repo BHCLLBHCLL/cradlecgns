@@ -33,12 +33,12 @@ NPE_MAP = {
     "HEXA_8": 8, "HEXA_20": 20, "HEXA_27": 27, "HEXA_32": 32, "HEXA_56": 56, "HEXA_64": 64,
 }
 
-# CGNS ElementType 整型到名称的映射 (cgnslib 常用值)
+# CGNS ElementType 整型到名称的映射 (cgnslib 常用值及扩展)
 ETYPE_INT_TO_NAME = {
     2: "NODE", 3: "BAR_2", 4: "BAR_3", 5: "TRI_3", 6: "TRI_6", 7: "QUAD_4", 8: "QUAD_8", 9: "QUAD_9",
     10: "TETRA_4", 11: "TETRA_10", 12: "PYRA_5", 13: "PYRA_14", 14: "PENTA_6", 15: "PENTA_15",
     16: "PENTA_18", 17: "HEXA_8", 18: "HEXA_20", 19: "HEXA_27", 20: "MIXED",
-    21: "NGON_n", 22: "NFACE_n",
+    21: "NGON_n", 22: "NGON_n", 23: "NFACE_n",  # 22/23 为不同实现中的 NGON_n/NFACE_n 编码
 }
 
 
@@ -67,20 +67,28 @@ def _decode_etype_value(arr):
 
 
 def get_element_type(elements_group):
-    """读取 ElementType_t，返回类型名称。"""
+    """读取 ElementType_t，返回类型名称。支持 ElementType 子节点或 Elements 自身的  data。"""
+    # 1. 优先从 ElementType 子节点读取
     et = elements_group.get("ElementType")
-    if et is None:
-        return None
-    data = None
-    if isinstance(et, h5py.Group):
-        for key in list(et.keys()):
-            if key.strip() == "data" or key == DATA_DSET or "data" in key.lower():
-                data = et[key][()]
-                break
-    elif isinstance(et, h5py.Dataset):
-        data = et[()]
-    if data is not None:
-        return _decode_etype_value(data)
+    if et is not None:
+        data = None
+        if isinstance(et, h5py.Group):
+            for key in list(et.keys()):
+                if key.strip() == "data" or key == DATA_DSET or "data" in key.lower():
+                    data = et[key][()]
+                    break
+        elif isinstance(et, h5py.Dataset):
+            data = et[()]
+        if data is not None:
+            result = _decode_etype_value(data)
+            if result:
+                return result
+    # 2. 部分实现将 ElementType 存于 Elements 自身的  data 首元素（如 ANSA/Cradle 导出）
+    data_node = elements_group.get(DATA_DSET)
+    if data_node is not None and isinstance(data_node, h5py.Dataset):
+        arr = np.asarray(data_node[()])
+        if arr.size >= 1 and arr.dtype.kind in ("i", "u"):
+            return ETYPE_INT_TO_NAME.get(int(arr.flat[0]))
     return None
 
 
@@ -265,7 +273,7 @@ def main():
                     continue
 
                 if etype in ("NGON_n", "NFACE_n"):
-                    print(f"跳过 {path}: NGON_n/NFACE_n 按 CGNS 标准必须保留 ElementStartOffset，无法转换。")
+                    print(f"Skip {path}: {etype} requires ElementStartOffset per CGNS standard, cannot convert.")
                     continue
 
                 if etype == "MIXED":
