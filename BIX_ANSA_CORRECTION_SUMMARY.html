@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CGNS NGON_n / NFACE_n 单元类型与存储结构说明</title>
+  <style>
+    body { font-family: "Microsoft YaHei", "SimHei", sans-serif; max-width: 36em; margin: 0 auto; padding: 2em; line-height: 1.6; }
+    h1 { border-bottom: 1px solid #ccc; padding-bottom: 0.3em; }
+    h2 { margin-top: 1.5em; }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 2em 0; }
+    @media print { body { font-size: 12pt; } }
+  </style>
+</head>
+<body>
+
+<h1>CGNS NGON_n / NFACE_n 单元类型与存储结构说明</h1>
+
+<p>本文档说明 CGNS 标准中 NGON_n 与 NFACE_n 单元类型的引入历程及存储结构，供 ANSA 导出修正与兼容性参考。</p>
+
+<hr />
+
+<h2>一、CGNS 3.1：NGON_n 与 NFACE_n 的引入</h2>
+
+<h3>1.1 引入时间与背景</h3>
+<p><strong>CGNS 3.1</strong> 引入了对 <strong>NGON_n</strong> 和 <strong>NFACE_n</strong> 单元类型的支持，用于表示非结构网格中的多面体单元。</p>
+
+<h3>1.2 单元类型含义</h3>
+<table>
+  <tr><th>单元类型</th><th>含义</th></tr>
+  <tr><td><strong>NGON_n</strong></td><td>任意多边形面，由面到顶点的连接关系定义（face-to-vertex connectivity）</td></tr>
+  <tr><td><strong>NFACE_n</strong></td><td>多面体单元，由单元到面的连接关系定义（cell-to-face connectivity）</td></tr>
+</table>
+<ul>
+  <li><strong>NGON_n</strong>：描述面的顶点序列，支持任意边数的多边形。</li>
+  <li><strong>NFACE_n</strong>：描述体单元所包含的面 ID 列表，支持任意面数的多面体。</li>
+  <li>若仅有 NGON_n 而无 NFACE_n，可表示 3D 空间网格中的 2D 表面单元。</li>
+</ul>
+
+<h3>1.3 存储结构（CGNS 3.1）</h3>
+<p>NGON_n 与 NFACE_n 使用以下结构存储：</p>
+<table>
+  <tr><th>数据节点</th><th>用途</th></tr>
+  <tr><td><strong>ElementConnectivity</strong></td><td>存储连接关系数据：NGON_n 为面→顶点索引，NFACE_n 为体→面索引</td></tr>
+  <tr><td><strong>ElementRange</strong></td><td>指定所描述单元的索引范围，格式为 [start, end]</td></tr>
+</table>
+<p>ElementConnectivity 为变长格式：每个单元/面的顶点或面数量不固定，需配合偏移量才能正确解析。</p>
+
+<hr />
+
+<h2>二、CGNS 3.4：ConnectOffset 的引入</h2>
+
+<h3>2.1 引入时间</h3>
+<p><strong>CGNS 3.4</strong> 版本引入了 <strong>ConnectOffset</strong>（连接偏移量）机制。</p>
+
+<h3>2.2 作用与意义</h3>
+<ul>
+  <li><strong>ConnectOffset</strong> 用于在 ElementConnectivity 中快速定位每个单元/面的数据起始位置。</li>
+  <li>对于 NGON_n、NFACE_n 等变长格式，ConnectOffset 使得解析更高效，无需逐项扫描即可访问任意单元。</li>
+  <li>与 ElementRange 配合，可完整描述单元索引范围及在 ElementConnectivity 中的布局。</li>
+</ul>
+
+<h3>2.3 与 ElementStartOffset 的关系</h3>
+<p>在 CGNS Elements_t 结构中，与偏移相关的常见命名包括：</p>
+<ul>
+  <li><strong>ElementStartOffset</strong>：在部分实现与文档中用于表示单元在 ElementConnectivity 中的起始偏移。</li>
+  <li><strong>ConnectOffset</strong>：CGNS 3.4 正式引入的偏移量命名，与上述概念一致，用于 NGON/NFACE 等变长结构的索引。</li>
+</ul>
+<p>实际文件中可能使用 ElementStartOffset 或 ConnectOffset 作为节点名，取决于 CGNS 库版本与导出工具。</p>
+
+<hr />
+
+<h2>三、版本演进汇总</h2>
+<table>
+  <tr><th>CGNS 版本</th><th>新增/变更内容</th></tr>
+  <tr><td><strong>3.1</strong></td><td>引入 NGON_n、NFACE_n 单元类型；使用 ElementConnectivity + ElementRange 存储</td></tr>
+  <tr><td><strong>3.4</strong></td><td>引入 ConnectOffset，用于变长 ElementConnectivity 的高效索引</td></tr>
+</table>
+
+<hr />
+
+<h2>四、与 ANSA 修正的关联</h2>
+<ul>
+  <li>ANSA 导出的 NGON_n/NFACE_n 网格通常包含 <strong>ElementConnectivity</strong>、<strong>ElementRange</strong> 及 <strong>ElementStartOffset</strong>（或 ConnectOffset）。</li>
+  <li>按 CGNS 规范，NGON_n 与 NFACE_n <strong>必须保留</strong> 偏移量结构，不可转换为仅 ElementConnectivity + ElementRange 的形式。</li>
+  <li>修正脚本（如 convert_elements_zone.py）对 NGON_n/NFACE_n 会跳过转换，以符合标准要求。</li>
+</ul>
+
+<hr />
+<p><em>文档基于 CGNS SIDS 规范及版本发布说明整理。</em></p>
+
+</body>
+</html>
