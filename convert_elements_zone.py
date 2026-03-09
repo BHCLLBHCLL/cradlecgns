@@ -163,8 +163,16 @@ def convert_mixed(elements_group, parent, base_name):
     off_node = elements_group.get("ElementStartOffset")
     if conn_node is None or off_node is None:
         return False, "MIXED 缺少 ElementConnectivity 或 ElementStartOffset"
-    conn = np.asarray(get_dataset_value(conn_node, DATA_DSET) or conn_node[()]).ravel()
-    offset = np.asarray(get_dataset_value(off_node, DATA_DSET) or off_node[()]).ravel()
+    conn_data = get_dataset_value(conn_node, DATA_DSET)
+    if conn_data is None and isinstance(conn_node, h5py.Dataset):
+        conn_data = conn_node[()]
+    off_data = get_dataset_value(off_node, DATA_DSET)
+    if off_data is None and isinstance(off_node, h5py.Dataset):
+        off_data = off_node[()]
+    if conn_data is None or off_data is None:
+        return False, "无法读取 ElementConnectivity 或 ElementStartOffset"
+    conn = np.asarray(conn_data).ravel()
+    offset = np.asarray(off_data).ravel()
 
     er = get_element_range(elements_group)
     if er is None:
@@ -209,7 +217,7 @@ def convert_mixed(elements_group, parent, base_name):
         er_grp.create_dataset(DATA_DSET, data=np.array([elem_range[0], elem_range[1]], dtype=np.int32))
         # ElementType
         et_grp = new_grp.create_group("ElementType")
-        et_grp.create_dataset(DATA_DSET, data=np.string_(etype))
+        et_grp.create_dataset(DATA_DSET, data=np.array(etype, dtype="S"))
         # ElementConnectivity
         conn_grp = new_grp.create_group("ElementConnectivity")
         conn_grp.create_dataset(DATA_DSET, data=conn_flat)
