@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Convert ElementConnectivity, ElementRange, ElementStartOffset, Zone data, PointList to int64.
+"""Convert ElementConnectivity, ElementRange, ElementStartOffset, Zone data to int64.
+PointList 不强制转为 int64。
 备注：数据类型是否必须为 64 位，需进一步验证。"""
 
 import argparse
@@ -34,11 +35,9 @@ def collect_datasets(f):
                 if obj.dtype in (np.int32, np.dtype("int32")):
                     result.append((obj, path))
                 return
-        # Base/box_vol/ data and ZoneBC/.../PointList/ data
+        # Base/box_vol/ data（不含 PointList）
         if path.endswith("/ data") and obj.dtype in (np.int32, np.dtype("int32")):
-            if "box_vol" in path and path.count("/") == 2:  # Base/box_vol/ data
-                result.append((obj, path))
-            elif "ZoneBC" in path and "PointList" in path:
+            if "box_vol" in path and path.count("/") == 2 and "PointList" not in path:
                 result.append((obj, path))
 
     f.visititems(visit)
@@ -57,7 +56,7 @@ def convert_one(ds, path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert ElementConnectivity/ElementRange/ElementStartOffset to int64"
+        description="Convert ElementConnectivity/ElementRange/ElementStartOffset/Zone data to int64 (excludes PointList)"
     )
     parser.add_argument("file", nargs="?", default="box_ansa.cgns", help="CGNS file")
     parser.add_argument("-n", "--dry-run", action="store_true", help="List only")

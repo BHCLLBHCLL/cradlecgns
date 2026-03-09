@@ -29,7 +29,7 @@
 
 ### 3.1 文件类型分布
 
-- Python 脚本：11 个
+- Python 脚本：12 个
 - Markdown 文档：4 个
 - HTML 文档：1 个
 - 文本说明：1 个
@@ -41,7 +41,7 @@
 | 文件 | 行数 | 作用概述 |
 |---|---:|---|
 | `compare_cgns.py` | 141 | 比较两个 CGNS 文件的结构、shape、dtype 与风险项 |
-| `convert_elements_to_int64.py` | 86 | 将关键整数数据集转为 int64 |
+| `convert_elements_to_int64.py` | 86 | 将 Element*、Zone data 等整数转为 int64（不含 PointList） |
 | `convert_elements_zone.py` | 295 | 处理 `Elements_t` 结构转换，是领域逻辑最复杂的脚本 |
 | `fix_bc_type_null.py` | 85 | 将 `Null/NULL` BCType 改为 `BCTypeNull` |
 | `fix_box_surfs_data.py` | 47 | 从参考文件复制 `ZoneBC/box_surfs/ data` |
@@ -51,8 +51,9 @@
 | `set_cgns_version.py` | 62 | 将 `CGNSLibraryVersion` 设置为 4.2 |
 | `view_cgns_shapes.py` | 49 | 查看 CGNS 中各 dataset 的 shape/dtype |
 | `downgrade_cgns_42_to_33.py` | 419 | 将 CGNS 4.2 格式向下转换为 3.3 格式 |
+| `upgrade_to_cgns_42.py` | 429 | 将 CGNS 文件转换为 4.2 标准格式（一键升级流程） |
 
-Python 脚本总计约 **1499 行**，连同 Markdown/Text 文档共约 **1833 行**。整体规模不大，但功能边界清晰。
+Python 脚本总计约 **1929 行**，连同 Markdown/Text 文档共约 **1833 行**。整体规模不大，但功能边界清晰。
 
 ---
 
@@ -103,6 +104,7 @@ numpy>=1.20.0
    - connectivity 符号
    - Elements_t 结构
    - CGNS 版本降级（4.2 → 3.3）
+   - CGNS 升级为 4.2 标准（`upgrade_to_cgns_42.py`）
 4. **根据结果补充文档/报告**
    - Markdown / HTML / PDF
 
@@ -179,13 +181,13 @@ numpy>=1.20.0
 
 ### `convert_elements_to_int64.py`
 
-该脚本把 `ElementConnectivity`、`ElementRange`、`ElementStartOffset`、`Base/box_vol/ data` 以及 `ZoneBC/.../PointList/ data` 中的 int32 转为 int64（`convert_elements_to_int64.py:19-55`）。
+该脚本把 `ElementConnectivity`、`ElementRange`、`ElementStartOffset`、`Base/box_vol/ data` 中的 int32 转为 int64。**不包含 PointList**（PointList 不强制转为 int64）。
 
 **分析：**
 
 - 逻辑上是“统一位宽”工具
 - 代码简单直接，易于理解
-- 文档与注释已明确说明“是否必须 64 位仍待验证”（`convert_elements_to_int64.py:1-3`），说明这里是经验性修复而非完全确认的规范要求
+- PointList 保留原类型，避免对下游造成兼容性问题
 
 ### `fix_connectivity_signs.py`
 
@@ -224,6 +226,24 @@ numpy>=1.20.0
 - 与 `set_cgns_version.py` 相反，是“版本降级”工具，用于兼容仅支持 CGNS 3.x 的下游软件
 - 实现复杂度较高，涉及 ElementType 编码映射、NGON/NFACE 的 offset 与 inline-count 格式转换
 - 是仓库中新增的版本兼容性工具，与 `convert_elements_zone.py` 在 Elements_t 处理上有一定关联
+
+### `upgrade_to_cgns_42.py`
+
+该脚本将读入的 CGNS 文件一键转换为 CGNS 4.2 标准格式。
+
+**五步转换逻辑：**
+
+1. 设置 CGNSLibraryVersion = 4.2
+2. NGON_n/NFACE_n：若为 3.x 内联格式，转为 4.x 偏移格式
+3. ElementConnectivity/ElementRange/ElementStartOffset/Zone data 的 int32 → int64（不含 PointList）
+4. PointList shape (n,) → (n, 1)
+5. BCType Null/NULL → BCTypeNull
+
+**分析：**
+
+- 与 `downgrade_cgns_42_to_33.py` 方向相反，用于将旧格式或非标准文件升级为 4.2
+- 支持 `-o/--output` 输出到新文件、`-n/--dry-run` 仅预览
+- 整合了 set_cgns_version、fix_pointlist_shape、fix_bc_type_null、convert_elements_to_int64 等脚本的核心逻辑，适合作为“一键标准化”入口
 
 ---
 
@@ -463,12 +483,13 @@ python run_repair_pipeline.py input.cgns --ref box_ngons.cgns
 1. `README.md`
 2. `BOX_ANSA_CORRECTIONS_SUMMARY.md`
 3. `compare_cgns.py`
-4. `fix_pointlist_shape.py`
-5. `fix_bc_type_null.py`
-6. `convert_elements_to_int64.py`
-7. `set_cgns_version.py`
-8. `downgrade_cgns_42_to_33.py`
-9. `convert_elements_zone.py`
-10. `md2pdf_simple.py`
+4. `upgrade_to_cgns_42.py`
+5. `fix_pointlist_shape.py`
+6. `fix_bc_type_null.py`
+7. `convert_elements_to_int64.py`
+8. `set_cgns_version.py`
+9. `downgrade_cgns_42_to_33.py`
+10. `convert_elements_zone.py`
+11. `md2pdf_simple.py`
 
 这样可以先理解业务背景，再进入具体修复逻辑，最后看导出与文档能力。

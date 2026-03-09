@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>BOX_ANSA_CORRECTIONS_SUMMARY</title>
+  <title>box_ansa 修正点总结</title>
   <style>
     /* Default styles provided by pandoc.
     ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -173,7 +173,7 @@
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">BOX_ANSA_CORRECTIONS_SUMMARY</h1>
+<h1 class="title">box_ansa 修正点总结</h1>
 </header>
 <h1 id="box_ansa.cgns-有效修正点总结">box_ansa.cgns 有效修正点总结</h1>
 <p>本文档系统梳理针对 <strong>box_ansa.cgns</strong>
@@ -226,7 +226,7 @@
 </tr>
 <tr>
 <td><code>convert_elements_to_int64.py</code></td>
-<td>将 Element*、Zone data、PointList 等整数改为 int64</td>
+<td>将 Element*、Zone data 等整数改为 int64（不含 PointList）</td>
 </tr>
 <tr>
 <td><code>fix_connectivity_signs.py</code></td>
@@ -242,6 +242,11 @@ ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n
 <td><code>set_cgns_version.py</code></td>
 <td>设置 CGNSLibraryVersion = 4.2（Star-CCM+、ANSA 可正常导入）</td>
 </tr>
+<tr>
+<td><code>upgrade_to_cgns_42.py</code></td>
+<td>一键将 CGNS 转为 4.2 标准（整合版本、PointList、BCType、int64
+等修正）</td>
+</tr>
 </tbody>
 </table>
 <h3 id="文档与备注">3. 文档与备注</h3>
@@ -252,10 +257,20 @@ ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n
 位；② connectivity 是否允许为负数。</li>
 </ul>
 <hr />
-<h2 id="二cgns-ngon_n-nface_n-单元类型与存储结构说明">二、CGNS NGON_n / NFACE_n 单元类型与存储结构说明</h2>
-<h3 id="21-cgns-31ngon_n-与-nface_n-的引入">2.1 CGNS 3.1：NGON_n 与 NFACE_n 的引入</h3>
-<p><strong>CGNS 3.1</strong> 引入了对 <strong>NGON_n</strong> 和 <strong>NFACE_n</strong> 单元类型的支持，用于表示非结构网格中的多面体单元。使用 <strong>ElementConnectivity</strong> 和 <strong>ElementRange</strong> 存储：</p>
+<h2 id="二cgns-ngon_n-nface_n-单元类型与存储结构说明">二、CGNS NGON_n /
+NFACE_n 单元类型与存储结构说明</h2>
+<h3 id="cgns-3.1ngon_n-与-nface_n-的引入">2.1 CGNS 3.1：NGON_n 与
+NFACE_n 的引入</h3>
+<p><strong>CGNS 3.1</strong> 引入了对 <strong>NGON_n</strong> 和
+<strong>NFACE_n</strong>
+单元类型的支持，用于表示非结构网格中的多面体单元。使用
+<strong>ElementConnectivity</strong> 和 <strong>ElementRange</strong>
+存储：</p>
 <table>
+<colgroup>
+<col style="width: 62%" />
+<col style="width: 37%" />
+</colgroup>
 <thead>
 <tr>
 <th>数据节点</th>
@@ -275,19 +290,32 @@ ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n
 </table>
 <ul>
 <li><strong>NGON_n</strong>：任意多边形面，由面到顶点的连接关系定义；描述面的顶点序列，支持任意边数的多边形。</li>
-<li><strong>NFACE_n</strong>：多面体单元，由单元到面的连接关系定义；描述体单元所包含的面 ID 列表，支持任意面数的多面体。</li>
-<li>ElementConnectivity 为变长格式，每个单元/面的顶点或面数量不固定，需配合偏移量才能正确解析。</li>
+<li><strong>NFACE_n</strong>：多面体单元，由单元到面的连接关系定义；描述体单元所包含的面
+ID 列表，支持任意面数的多面体。</li>
+<li>ElementConnectivity
+为变长格式，每个单元/面的顶点或面数量不固定，需配合偏移量才能正确解析。</li>
 </ul>
-<h3 id="22-cgns-34connectoffset-的引入">2.2 CGNS 3.4：ConnectOffset 的引入</h3>
-<p><strong>CGNS 3.4</strong> 版本引入了 <strong>ConnectOffset</strong>（连接偏移量）机制：</p>
+<h3 id="cgns-3.4connectoffset-的引入">2.2 CGNS 3.4：ConnectOffset
+的引入</h3>
+<p><strong>CGNS 3.4</strong> 版本引入了
+<strong>ConnectOffset</strong>（连接偏移量）机制：</p>
 <ul>
-<li>用于在 ElementConnectivity 中快速定位每个单元/面的数据起始位置。</li>
-<li>对于 NGON_n、NFACE_n 等变长格式，ConnectOffset 使得解析更高效，无需逐项扫描即可访问任意单元。</li>
-<li>与 ElementRange 配合，可完整描述单元索引范围及在 ElementConnectivity 中的布局。</li>
-<li>实际文件中可能使用 <code>ElementStartOffset</code> 或 <code>ConnectOffset</code> 作为节点名，取决于 CGNS 库版本与导出工具。</li>
+<li>用于在 ElementConnectivity
+中快速定位每个单元/面的数据起始位置。</li>
+<li>对于 NGON_n、NFACE_n 等变长格式，ConnectOffset
+使得解析更高效，无需逐项扫描即可访问任意单元。</li>
+<li>与 ElementRange 配合，可完整描述单元索引范围及在 ElementConnectivity
+中的布局。</li>
+<li>实际文件中可能使用 <code>ElementStartOffset</code> 或
+<code>ConnectOffset</code> 作为节点名，取决于 CGNS
+库版本与导出工具。</li>
 </ul>
-<h3 id="23-版本演进汇总">2.3 版本演进汇总</h3>
+<h3 id="版本演进汇总">2.3 版本演进汇总</h3>
 <table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 59%" />
+</colgroup>
 <thead>
 <tr>
 <th>CGNS 版本</th>
@@ -297,7 +325,8 @@ ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n
 <tbody>
 <tr>
 <td><strong>3.1</strong></td>
-<td>引入 NGON_n、NFACE_n；使用 ElementConnectivity + ElementRange 存储</td>
+<td>引入 NGON_n、NFACE_n；使用 ElementConnectivity + ElementRange
+存储</td>
 </tr>
 <tr>
 <td><strong>3.4</strong></td>
@@ -305,7 +334,10 @@ ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n
 </tr>
 </tbody>
 </table>
-<p>按 CGNS 规范，NGON_n 与 NFACE_n <strong>必须保留</strong> 偏移量结构，不可转换为仅 ElementConnectivity + ElementRange 的形式。修正脚本（如 <code>convert_elements_zone.py</code>）对 NGON_n/NFACE_n 会跳过转换。</p>
+<p>按 CGNS 规范，NGON_n 与 NFACE_n <strong>必须保留</strong>
+偏移量结构，不可转换为仅 ElementConnectivity + ElementRange
+的形式。修正脚本（如 <code>convert_elements_zone.py</code>）对
+NGON_n/NFACE_n 会跳过转换。</p>
 <hr />
 <h2 id="三box_ansa.cgns-有效修正点汇总">三、box_ansa.cgns
 有效修正点汇总</h2>
@@ -338,15 +370,17 @@ BCTypeNull、BCWall 等）。</li>
 <li><strong>做法</strong>：将 shape 从 (n,) 改为 (n,1)。</li>
 <li><strong>脚本</strong>：<code>fix_pointlist_shape.py</code>。</li>
 </ul>
-<h3 id="修正点-3整数类型统一为-64-位与-ngons-一致">修正点
-3：整数类型统一为 64 位（与 ngons 一致）</h3>
+<h3
+id="修正点-3整数类型统一为-64-位elementzone-data不含-pointlist">修正点
+3：整数类型统一为 64 位（Element*、Zone data，不含 PointList）</h3>
 <ul>
 <li><strong>现象</strong>：ansa 中
 ElementConnectivity、ElementRange、ElementStartOffset、Base/box_vol/
-data、ZoneBC/box_surfs/PointList/ data 等为 int32，ngons 为 int64。</li>
+data 等为 int32，ngons 为 int64。</li>
 <li><strong>风险</strong>：大网格索引溢出、或按 int64 解析时 stride
 错误。</li>
-<li><strong>做法</strong>：上述路径的整数 dataset 转为 int64。</li>
+<li><strong>做法</strong>：将 Element*、Zone data 等整数 dataset 转为
+int64。<strong>PointList 不强制转为 int64</strong>，保留原类型。</li>
 <li><strong>脚本</strong>：<code>convert_elements_to_int64.py</code>。</li>
 <li><strong>备注</strong>：是否“必须”64 位尚未最终确认，当前以与
 ngons/常见读取器一致为准。</li>
@@ -396,11 +430,16 @@ NGON_n/NFACE_n，脚本会跳过；若以后遇到 MIXED 或误带 offset
 <hr />
 <h2
 id="四推荐修正流程box_ansa.cgns">四、推荐修正流程（box_ansa.cgns）</h2>
+<p><strong>方式 A：一键升级（推荐）</strong></p>
+<pre class="text"><code>python upgrade_to_cgns_42.py box_ansa.cgns -o box_ansa_42.cgns</code></pre>
+<p><code>upgrade_to_cgns_42.py</code> 整合了版本号、NGON/NFACE
+格式、int64、PointList shape、BCType 等修正，适合快速标准化。</p>
+<p><strong>方式 B：分步执行</strong></p>
 <p>按顺序执行即可得到与 box_ngons 兼容、可被 Star-CCM+ 与 ANSA
 正常导入的文件：</p>
 <pre class="text"><code>1. fix_pointlist_shape.py    box_ansa.cgns    # PointList  data (n,) -&gt; (n,1)
 2. fix_box_surfs_data.py     [或 fix_bc_type_null.py]  # BC 类型合法且长度一致
-3. convert_elements_to_int64.py  box_ansa.cgns # 整数转 int64
+3. convert_elements_to_int64.py  box_ansa.cgns # Element*、Zone 整数转 int64（不含 PointList）
 4. set_cgns_version.py       box_ansa.cgns    # CGNSLibraryVersion = 4.2
 5. （可选）fix_connectivity_signs.py  box_ansa.cgns  # 若需消除负的 face ID
 6. （可选）h5repack box_ansa.cgns box_ansa_repacked.cgns  # 压缩与去碎片</code></pre>

@@ -21,10 +21,11 @@
 | `fix_pointlist_shape.py` | ZoneBC 下 PointList 内 `" data"` 的 shape 从 (n,) 改为 (n,1) |
 | `fix_box_surfs_data.py` | 将 ZoneBC/box_surfs/ data 从参考文件（如 box_ngons）复制，使 BC 类型与长度一致 |
 | `fix_bc_type_null.py` | 将 BCType 为 Null/NULL 的项改为 BCTypeNull（CGNS 合法类型） |
-| `convert_elements_to_int64.py` | 将 Element*、Zone data、PointList 等整数改为 int64 |
+| `convert_elements_to_int64.py` | 将 Element*、Zone data 等整数改为 int64（不含 PointList） |
 | `fix_connectivity_signs.py` | ElementConnectivity 中负数取绝对值（可选，见备注） |
 | `convert_elements_zone.py` | 将带 ElementStartOffset 的 Elements_t 转为仅 ElementConnectivity+ElementRange（固定类型/MIXED；NGON_n/NFACE_n 跳过） |
 | `set_cgns_version.py` | 设置 CGNSLibraryVersion = 4.2（Star-CCM+、ANSA 可正常导入） |
+| `upgrade_to_cgns_42.py` | 一键将 CGNS 转为 4.2 标准（整合版本、PointList、BCType、int64 等修正） |
 
 ### 3. 文档与备注
 
@@ -87,11 +88,11 @@
 - **做法**：将 shape 从 (n,) 改为 (n,1)。
 - **脚本**：`fix_pointlist_shape.py`。
 
-### 修正点 3：整数类型统一为 64 位（与 ngons 一致）
+### 修正点 3：整数类型统一为 64 位（Element*、Zone data，不含 PointList）
 
-- **现象**：ansa 中 ElementConnectivity、ElementRange、ElementStartOffset、Base/box_vol/ data、ZoneBC/box_surfs/PointList/ data 等为 int32，ngons 为 int64。
+- **现象**：ansa 中 ElementConnectivity、ElementRange、ElementStartOffset、Base/box_vol/ data 等为 int32，ngons 为 int64。
 - **风险**：大网格索引溢出、或按 int64 解析时 stride 错误。
-- **做法**：上述路径的整数 dataset 转为 int64。
+- **做法**：将 Element*、Zone data 等整数 dataset 转为 int64。**PointList 不强制转为 int64**，保留原类型。
 - **脚本**：`convert_elements_to_int64.py`。
 - **备注**：是否“必须”64 位尚未最终确认，当前以与 ngons/常见读取器一致为准。
 
@@ -126,12 +127,22 @@
 
 ## 四、推荐修正流程（box_ansa.cgns）
 
+**方式 A：一键升级（推荐）**
+
+```text
+python upgrade_to_cgns_42.py box_ansa.cgns -o box_ansa_42.cgns
+```
+
+`upgrade_to_cgns_42.py` 整合了版本号、NGON/NFACE 格式、int64、PointList shape、BCType 等修正，适合快速标准化。
+
+**方式 B：分步执行**
+
 按顺序执行即可得到与 box_ngons 兼容、可被 Star-CCM+ 与 ANSA 正常导入的文件：
 
 ```text
 1. fix_pointlist_shape.py    box_ansa.cgns    # PointList  data (n,) -> (n,1)
 2. fix_box_surfs_data.py     [或 fix_bc_type_null.py]  # BC 类型合法且长度一致
-3. convert_elements_to_int64.py  box_ansa.cgns # 整数转 int64
+3. convert_elements_to_int64.py  box_ansa.cgns # Element*、Zone 整数转 int64（不含 PointList）
 4. set_cgns_version.py       box_ansa.cgns    # CGNSLibraryVersion = 4.2
 5. （可选）fix_connectivity_signs.py  box_ansa.cgns  # 若需消除负的 face ID
 6. （可选）h5repack box_ansa.cgns box_ansa_repacked.cgns  # 压缩与去碎片

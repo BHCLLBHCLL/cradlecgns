@@ -235,7 +235,7 @@ def step_convert_ngon_nface_to_offset(f, dry_run):
 
 
 def step_upgrade_int64_simple(f, dry_run):
-    """将 ElementConnectivity/ElementRange/ElementStartOffset/PointList 等 int32 升级为 int64。"""
+    """将 ElementConnectivity/ElementRange/ElementStartOffset/Zone data 等 int32 升级为 int64。不含 PointList。"""
     to_convert = []
 
     def visit(name, obj):
@@ -245,9 +245,7 @@ def step_upgrade_int64_simple(f, dry_run):
             return
         if "ElementConnectivity" in name or "ElementRange" in name or "ElementStartOffset" in name:
             to_convert.append((obj, name))
-        elif "ZoneBC" in name and "PointList" in name:
-            to_convert.append((obj, name))
-        elif "box_vol" in name:
+        elif "box_vol" in name and "PointList" not in name:
             to_convert.append((obj, name))
 
     f.visititems(visit)
@@ -362,7 +360,7 @@ def main():
 转换步骤：
   1. 设置 CGNSLibraryVersion = 4.2
   2. NGON_n/NFACE_n：3.x 内联格式 -> 4.x 偏移格式（若适用）
-  3. 连接性整数数据 int32 -> int64
+  3. 连接性整数数据 int32 -> int64（不含 PointList）
   4. PointList shape (n,) -> (n, 1)
   5. BCType Null/NULL -> BCTypeNull
 
