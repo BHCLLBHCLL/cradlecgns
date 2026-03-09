@@ -33,7 +33,42 @@
 
 ---
 
-## 二、box_ansa.cgns 有效修正点汇总
+## 二、CGNS NGON_n / NFACE_n 单元类型与存储结构说明
+
+### 2.1 CGNS 3.1：NGON_n 与 NFACE_n 的引入
+
+**CGNS 3.1** 引入了对 **NGON_n** 和 **NFACE_n** 单元类型的支持，用于表示非结构网格中的多面体单元。使用 **ElementConnectivity** 和 **ElementRange** 存储：
+
+| 数据节点 | 用途 |
+|----------|------|
+| **ElementConnectivity** | 存储连接关系：NGON_n 为面→顶点索引，NFACE_n 为体→面索引 |
+| **ElementRange** | 指定所描述单元的索引范围，格式为 `[start, end]` |
+
+- **NGON_n**：任意多边形面，由面到顶点的连接关系定义；描述面的顶点序列，支持任意边数的多边形。
+- **NFACE_n**：多面体单元，由单元到面的连接关系定义；描述体单元所包含的面 ID 列表，支持任意面数的多面体。
+- ElementConnectivity 为变长格式，每个单元/面的顶点或面数量不固定，需配合偏移量才能正确解析。
+
+### 2.2 CGNS 3.4：ConnectOffset 的引入
+
+**CGNS 3.4** 版本引入了 **ConnectOffset**（连接偏移量）机制：
+
+- 用于在 ElementConnectivity 中快速定位每个单元/面的数据起始位置。
+- 对于 NGON_n、NFACE_n 等变长格式，ConnectOffset 使得解析更高效，无需逐项扫描即可访问任意单元。
+- 与 ElementRange 配合，可完整描述单元索引范围及在 ElementConnectivity 中的布局。
+- 实际文件中可能使用 `ElementStartOffset` 或 `ConnectOffset` 作为节点名，取决于 CGNS 库版本与导出工具。
+
+### 2.3 版本演进汇总
+
+| CGNS 版本 | 新增/变更内容 |
+|-----------|----------------|
+| **3.1** | 引入 NGON_n、NFACE_n；使用 ElementConnectivity + ElementRange 存储 |
+| **3.4** | 引入 ConnectOffset，用于变长 ElementConnectivity 的高效索引 |
+
+按 CGNS 规范，NGON_n 与 NFACE_n **必须保留** 偏移量结构，不可转换为仅 ElementConnectivity + ElementRange 的形式。修正脚本（如 `convert_elements_zone.py`）对 NGON_n/NFACE_n 会跳过转换。
+
+---
+
+## 三、box_ansa.cgns 有效修正点汇总
 
 以下为对 **box_ansa.cgns** 实际生效的修正点，按推荐执行顺序排列。
 
@@ -89,7 +124,7 @@
 
 ---
 
-## 三、推荐修正流程（box_ansa.cgns）
+## 四、推荐修正流程（box_ansa.cgns）
 
 按顺序执行即可得到与 box_ngons 兼容、可被 Star-CCM+ 与 ANSA 正常导入的文件：
 
@@ -110,7 +145,7 @@ python compare_cgns.py   # 若已支持参数，可比较 box_ansa_repacked.cgns
 
 ---
 
-## 四、与 box_ngons.cgns 的差异收敛情况
+## 五、与 box_ngons.cgns 的差异收敛情况
 
 完成上述修正并（可选）repack 后：
 
