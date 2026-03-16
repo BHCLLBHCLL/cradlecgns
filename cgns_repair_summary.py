@@ -169,25 +169,41 @@ def step_delete_at_groups(f, dry_run):
 # 步骤 5：删除 PointList 为空的边界 group
 # ---------------------------------------------------------------------------
 
+def _find_zonebc_groups(f, root="/"):
+    """递归找到所有 ZoneBC group。"""
+    zonebcs = []
+    if root == "/":
+        node = f
+    else:
+        node = f[root]
+    if not isinstance(node, h5py.Group):
+        return zonebcs
+    for key in node.keys():
+        if key == "ZoneBC":
+            zonebcs.append(node[key])
+        elif isinstance(node[key], h5py.Group):
+            sub = (root if root != "/" else "") + "/" + key
+            zonebcs.extend(_find_zonebc_groups(f, sub))
+    return zonebcs
+
+
 def step_delete_empty_pointlist_bc(f, dry_run):
     """删除 PointList 没有 data 数据集的边界条件 group。"""
     to_delete = []
+    zonebcs = _find_zonebc_groups(f)
 
-    def visit(name, obj):
-        if not isinstance(obj, h5py.Group):
-            return
-        if "ZoneBC" not in name:
-            return
-        if not name.endswith("/PointList"):
-            return
-        pointlist = obj
-        if DATA_DSET not in pointlist:
-            bc_grp = pointlist.parent
-            zonebc = bc_grp.parent
-            bc_key = bc_grp.name.rsplit("/", 1)[-1]
-            to_delete.append((zonebc, bc_key))
-
-    f.visititems(visit)
+    for zonebc in zonebcs:
+        for bc_key in list(zonebc.keys()):
+            bc_grp = zonebc[bc_key]
+            if not isinstance(bc_grp, h5py.Group):
+                continue
+            if "PointList" not in bc_grp:
+                continue
+            pointlist = bc_grp["PointList"]
+            if not isinstance(pointlist, h5py.Group):
+                continue
+            if DATA_DSET not in pointlist:
+                to_delete.append((zonebc, bc_key))
 
     if not to_delete:
         print("[5 空BC] 未发现 PointList 无 data 的边界 group。")
