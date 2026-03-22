@@ -1,2 +1,4 @@
 *.cgns filter=lfs diff=lfs merge=lfs -text
 *.ansa filter=lfs diff=lfs merge=lfs -text
+*.pph filter=lfs diff=lfs merge=lfs -text
+*.gph filter=lfs diff=lfs merge=lfs -text
