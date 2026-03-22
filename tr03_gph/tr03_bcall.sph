@@ -1,0 +1,256 @@
+﻿SDAT
+SCFLOW
+ 1  0  0  UTF-8
+% PreVersion : 5225.20302.20251223
+% Date : 2026/03/22 20:33:09
+GPH
+tr03_bcall.gph
+FPH
+tr03_bcall
+RPH
+tr03_bcall
+ETCO
+tr03_bcall
+/
+ICONO    0
+IPHAS    0
+/
+#
+TM_CYCLE
+    360
+#
+TM_CYCLE_PROG
+    transient_dt
+    2   0.000277
+#
+EQUA
+ MOM    1
+ PC     1
+ ENERGY 0
+ TURB   1
+ VOF    0
+ RADI   0
+ CONC   0
+ CAVI   0
+ ELEC   0
+ LQFM   0
+ FVF    0
+ PBE    0
+ COMB   0
+/
+#
+TBTY
+    8
+#
+BASI
+    101325 273.15 0
+#
+PROPERTY
+    1 general air(incompressible/20C)
+      fluid
+        density
+          incompressible
+            1.206
+        viscosity
+          value
+            1.83e-05
+        specific_heat
+          value
+            1007
+        heat_conductivity
+          value
+            0.0256
+      /
+/
+#
+PART_MATERIAL
+  Case air(incompressible/20C)
+  Rotate air(incompressible/20C)
+/
+#
+INIT
+% @InitialDefaultK
+  TURK
+    1e-05 0
+% @InitialDefaultEps
+  TEPS
+    1e-09 0
+/
+#
+BC_FLOWIO
+  Flux
+    volume_flowrate
+    RVLF 0.01
+    TINT 5
+    EVSR 100
+/
+    inlet
+/
+  Flux[2]
+    pressure
+    PRES 0
+    RVSW 2
+    TINT 5
+    EVSR 100
+/
+    outlet
+/
+/
+#
+BC_STRESS
+  @DefaultStressBC
+    function_type
+      adaptive
+    wall_speed_type
+      ale
+/
+    @UNDEFINEDMOM
+/
+  WallStress
+    function_type
+      adaptive
+    wall_speed_type
+      ale
+/
+    impeller
+/
+  WallStress[2]
+    function_type
+      adaptive
+    wall_speed_type
+      static
+/
+    channel
+/
+/
+#
+ALE_MOVE
+Moving
+  1
+  2
+  314.159265358979 0
+  MovingAxis_1
+  Rotate_Moving
+/
+/
+#
+ALE_OPTION
+  lock
+    0
+/
+#
+DCB_REGION
+  discontinuous
+  plane
+  Rotate_Plane_Static Rotate_Plane_Moving
+/
+  discontinuous
+  cylinder
+  DiscontinuousAxis_1
+  Rotate_Cylinder_Static Rotate_Cylinder_Moving
+/
+  discontinuous
+  plane
+  Rotate_Plane[2]_Static Rotate_Plane[2]_Moving
+/
+/
+#
+MIXING_PLANE_OPTION
+  pbnd_mix
+    0
+  pbnd_div
+    1
+/
+#
+GFIL
+    9:L 0
+#
+FOUT_OPTION
+/
+#
+INFO_BASIC
+/
+#
+RFIL
+  0:L
+  save_old_data
+    1
+  delete_timing
+    0
+/
+#
+INFO_ANGULAR_MOMENTUM
+/
+#
+INFO_TURBO
+  LFileTurbo
+    fan
+    1:L
+    Moving 0
+    inlet
+/
+    outlet
+/
+    impeller
+/
+/
+#
+INFO_TURBO_OPTION
+  density
+    -1
+  velocity
+    -1
+/
+#
+NEXT
+/
+#
+LOOP_EQUATION
+/
+#
+SOLV
+/
+#
+SOLI
+    40 0
+#
+UPWD
+/
+#
+PFIX
+/
+#
+EQUA_START
+    MOM   1
+    ENERGY   1
+    TURB   1
+    CONC   1
+/
+#
+TBCN
+  TBYMAX  100000
+/
+#
+GPH_OPTION
+  part_fe0108
+    1
+  volume_region_fe0109
+    1
+  surface_region_fe0110
+    1
+/
+#
+REF_POINT
+/
+#
+REF_FACE
+/
+#
+REF_AXIS
+  MovingAxis_1
+    -0.026 0 0 1 0 0
+  DiscontinuousAxis_1
+    -0.026 0 0 1 0 0
+/
+#
+GOGO
